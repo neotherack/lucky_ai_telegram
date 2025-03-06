@@ -98,7 +98,7 @@ def interact_with_ai(user_request, chat_id, config):
       if tool_messages!=[]: #loop, tools used
         messages = messages+tool_messages
         messages = purge_context(messages, config["context_keep"], config["context_max"])
-        tool_captions+=tool_list_info(tool_calls)
+        tool_captions+=tool_list_info(tool_calls)+"\n"
       else: #talk to user, loop finished!
         save_context(chat_id, messages)
         return tool_captions+messages[-1]['content']
