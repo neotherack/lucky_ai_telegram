@@ -8,6 +8,11 @@ from bs4 import BeautifulSoup
 
 from dotenv import load_dotenv
 
+def remove_empty_lines(text):
+    lines = text.split('\n')
+    non_empty_lines = [line for line in lines if line.strip() != '']
+    return str('\n'.join(non_empty_lines))
+
 def toolcall_to_json(tool):
     id_ = str(uuid.uuid4())
     name = tool.function.name
