@@ -67,10 +67,14 @@ def run_tools(available_functions, requested_tools):
       return tool_messages
 
 def tool_list_info(tools):
-    return "\n".join([f'🛠️ {tool["function"]["name"]}' for tool in tools])
+    if tools and tools!=[]:
+      return "\n".join([f'🛠️ {tool["function"]["name"]}' for tool in tools])
+    else:
+      return ""
 
 def interact_with_ai(user_request, chat_id, config):
     client = get_client(config)
+    tool_captions = ""
 
     history = load_context(chat_id)
     if history:
@@ -94,8 +98,9 @@ def interact_with_ai(user_request, chat_id, config):
       if tool_messages!=[]: #loop, tools used
         messages = messages+tool_messages
         messages = purge_context(messages, config["context_keep"], config["context_max"])
+        tool_captions+=tool_list_info(tool_calls)
       else: #talk to user, loop finished!
         save_context(chat_id, messages)
-        return tool_list_info(tool_calls)+messages[-1]['content']
+        return tool_captions+messages[-1]['content']
 
     return "Max tool iterations triggered!"
