@@ -1,12 +1,20 @@
 import os
 import json
 import uuid
+import logging
 import requests
 import matplotlib.pyplot as plt
 from typing import List, Optional, Union
 from bs4 import BeautifulSoup
 
 from dotenv import load_dotenv
+
+# Configure basic logging
+logging.basicConfig(
+    format='%(name)s -%(levelname)s- %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 def remove_empty_lines(text):
     lines = text.split('\n')
@@ -208,7 +216,7 @@ def get_weather_forecast(city_name: str, mode: str) -> str:
     str: the weather forecast for the location in JSON format, you should translate to a very detailed human readable text. All units will be in international system
   """
   load_dotenv()
-  TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+  WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
   geo_url=f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=1&appid={WEATHER_API_KEY}"
   response_geo = requests.get(geo_url)

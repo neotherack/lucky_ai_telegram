@@ -1,10 +1,19 @@
 import uuid
+import logging
 
 from ollama import Client, ResponseError
 from .context import init_context, append_context, purge_context, print_context, save_context, load_context
 from .tools import get_tools, toolcall_to_json
+from .disk_tools import get_disk_tools
 
 nanosec_to_sec = 100000000
+
+# Configure basic logging
+logging.basicConfig(
+    format='%(name)s -%(levelname)s- %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 def get_client(config):
   proto = config["protocol"]
@@ -20,7 +29,7 @@ def ai_step_stats(llm_response):
     prompt_dur = int(llm_response.prompt_eval_duration/nanosec_to_sec)
     gen_dur = int(llm_response.eval_duration/nanosec_to_sec)
     total_dur = int(llm_response.total_duration/nanosec_to_sec)
-    print(f" 🧠 {model} loaded in {load_dur} secs\nPROMPT: {prompt_tokens} tokens in {prompt_dur} secs\nGENERATION: {eval_tokens} tokens in  {gen_dur} secs. TOTAL {total_dur}")
+    logger.info(f" 🧠 {model} loaded in {load_dur} secs\nPROMPT: {prompt_tokens} tokens in {prompt_dur} secs\nGENERATION: {eval_tokens} tokens in  {gen_dur} secs. TOTAL {total_dur}")
 
 def get_response_from_model(client, messages, config, tools):
     model = config["model"]
@@ -52,18 +61,18 @@ def run_tools(available_functions, requested_tools):
 
         func_call = available_functions.get(tool_name)
         if func_call:
-          print(f" 🛠️ TOOL {tool_name}({tool_args})")
+          logger.info(f" 🛠️ TOOL {tool_name}({tool_args})")
           try:
             function_result = func_call(**tool_args)
             tool_messages.append({'role': 'tool', 'content': str(function_result), 'name': tool_name, 'tool_call_id': tool_id})
           except Exception as e:
             tool_messages.append({'role': 'tool', 'content': str(e), 'name': tool_name, 'tool_call_id': tool_id})
         else:
-          print('Function', tool_name, 'not found')
+          logger.error('Function', tool_name, 'not found')
           tool_messages.append({'role': 'tool', 'content': 'tool not found!', 'name': tool_name, 'tool_call_id': tool_id})
       return tool_messages
     else:
-      print(' 🙅‍♂️ NO TOOLS, text only')
+      logger.info(' 🙅‍♂️ NO TOOLS, text only')
       return tool_messages
 
 def tool_list_info(tools):
@@ -87,6 +96,10 @@ def interact_with_ai(user_request, chat_id, config):
     tool_iter = 0
     tool_max_iter = config["max_iter"]
     tools, available_functions = get_tools()
+    disk_tools, av_disk_funcs  = get_disk_tools()
+
+    tools = tools+disk_tools
+    available_functions = available_functions|av_disk_funcs
 
     while tool_iter < tool_max_iter:
       tool_iter+=1
