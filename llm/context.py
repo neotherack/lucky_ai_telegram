@@ -16,10 +16,10 @@ def init_context(system_prompt):
 
 def append_context(messages, role, content="<no content>", tools=None):
     if tools:
-      logger.info(f"Assistant response with tools request")
+      logger.info(f"[{role}] message with tools request")
       msg = {'role': role, 'content': content, 'tool_calls': tools}
     else:
-      logger.info(f"Assistant text only response")
+      logger.info(f"[{role}] text-only message")
       msg = {'role': role, 'content': content}
 
     logger.debug(msg)

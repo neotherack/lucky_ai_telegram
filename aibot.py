@@ -53,6 +53,8 @@ def process_message(message: dict):
 
             if user_request=="/start":
                 send_telegram_reply(chat_id, f"Welcome!")
+            elif user_request=="/wipe":
+                os.remove(f"data/{chat_id}.json")
             else:
                 if user_request and chat_id and chat_id in ALLOWED_CHAT_IDS:
                     logger.info(f"Message from {chat_id}: {user_request}")
@@ -63,7 +65,7 @@ def process_message(message: dict):
                     send_telegram_reply(chat_id, f"You're NOT allowed to use this bot")
 
     except Exception as e:
-        logger.error(f"Error processing message: {e}", exc_info=True)
+        logger.error(f"Error processing message: {e}")
 
 def send_telegram_reply(chat_id: int, text: str):
     """Send message with error handling and logging"""

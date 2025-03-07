@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 def write_file(filename, text):
-    """Creates or overwrites a file in the drafts subdirectory. Use this for safely
-    storing generated content before final approval. All files are saved in a
-    dedicated folder to prevent accidental overwrites of production files.
+    """Creates or overwrites a file in the disk server, you can save any file.
+    Consider adding the proper extension to the file.
+    Do not set any path, just filename.
 
     Args:
         filename (str): Name of file to create/overwrite. Include extension.
@@ -34,8 +34,8 @@ def write_file(filename, text):
 
 
 def read_file(filename):
-    """Retrieves file contents from the drafts subdirectory. Use this to access
-    previously saved files or to verify written content.
+    """Retrieves file contents from disk server, useful to retrieve any previously saved file.
+    Do not set any path, just the filename.
 
     Args:
         filename (str): Name of file to read from drafts folder. Include extension.
