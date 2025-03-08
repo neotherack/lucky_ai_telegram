@@ -4,7 +4,7 @@ from os.path import abspath
 
 # Configure basic logging
 logging.basicConfig(
-    format='%(name)s -%(levelname)s- %(message)s',
+    format='%(levelname)s: %(name)s %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -16,10 +16,10 @@ def init_context(system_prompt):
 
 def append_context(messages, role, content="<no content>", tools=None):
     if tools:
-      logger.info(f"[{role}] message with tools request")
+      logger.info(f"Message with tools request from {role}")
       msg = {'role': role, 'content': content, 'tool_calls': tools}
     else:
-      logger.info(f"[{role}] text-only message")
+      logger.info(f"Text-only message from {role}")
       msg = {'role': role, 'content': content}
 
     logger.debug(msg)
