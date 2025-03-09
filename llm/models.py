@@ -4,7 +4,6 @@ import logging
 from ollama import Client, ResponseError
 from .context import init_context, append_context, purge_context, print_context, save_context, load_context
 from .tools import get_tools, toolcall_to_json
-from .disk_tools import get_disk_tools
 
 nanosec_to_sec = 100000000
 
@@ -100,10 +99,10 @@ def interact_with_ai(user_request, chat_id, config):
     tool_iter = 0
     tool_max_iter = config["max_iter"]
     tools, available_functions = get_tools()
-    disk_tools, av_disk_funcs  = get_disk_tools()
+    #disk_tools, av_disk_funcs  = get_disk_tools()
 
-    tools = tools+disk_tools
-    available_functions = available_functions|av_disk_funcs
+    #tools = tools +disk_tools
+    #available_functions = available_functions |av_disk_funcs
 
     while tool_iter < tool_max_iter:
       tool_iter+=1

@@ -27,18 +27,19 @@ def toolcall_to_json(tool):
     args = tool.function.arguments
     return {"id":id_ , "type":"function", "function":{"name":name,"arguments":args}}
 
-def list_local_dir() -> str:
+def list_local_dir(directory) -> str:
     """
     This tool will return a local disk directory listing, it's useful to check existing files in local disk.
-    You can use it anytime.
+    You have to pick one of the allowed folders: drafts, plots or data.
 
-    Args: No args needed, it will always list the local directory
+    Args:
+        directory (str): pick of these "drafts","plots","data".
 
     Returns:
-        str: a text string containing all file names from the local directory
+        str: a text string containing all file names
 
     Example:
-        list_local_dir() -> file listing from the local directory
+        list_local_dir("drafts") -> file listing in string format from the drafts dir
     """
     return str(os.listdir())
 
@@ -244,13 +245,6 @@ def get_current_time() -> str:
   return str(datetime.now())
 
 
-def toolcall_to_json(tool):
-    id_ = str(uuid.uuid4())
-    name = tool.function.name
-    args = tool.function.arguments
-    return {"id":id_ , "type":"function", "function":{"name":name,"arguments":args}}
-
-
 def get_tools():
   tools = [
     do_math_operations,
@@ -266,5 +260,74 @@ def get_tools():
     'get_current_time': get_current_time,
     'browse_website': browse_website,
     'plot_chart': plot_chart,
+  }
+  return tools, available_functions
+
+
+def write_file(filename, text):
+    """Creates or overwrites a file in the disk server, you can save any file.
+    Consider adding the proper extension to the file.
+    Do not set any path, just filename.
+
+    Args:
+        filename (str): Name of file to create/overwrite. Include extension.
+        text (str): Content to write to the file. UTF-8 encoded.
+
+    Returns:
+        str: Success or error message
+    """
+    logger.info(f"Written to {filename}")
+    try:
+        with open(f"drafts/{filename}", "w") as f:
+            f.write(text)
+
+        return "Success, data written to {filename}"
+
+    except Exception as e:
+        logger.error(f"Cannot write to {filename}!\n{str(e)}")
+        return "Error, cannot write to {filename}"
+
+
+def read_file(filename):
+    """Retrieves file contents from disk server, useful to retrieve any previously saved file.
+    Do not set any path, just the filename.
+
+    Args:
+        filename (str): Name of file to read from drafts folder. Include extension.
+
+    Returns:
+        str: File contents as string if successful, error message if file doesn't
+        exist or can't be read.
+    """
+    logger.info(f"Read from {filename}")
+    try:
+        f = open(f"drafts/{filename}","r")
+        return f.read()
+    except Exception as e:
+        logger.error(f"Cannot read from {filename}!\n{str(e)}")
+        return f"Error, cannot read from {filename}"
+
+
+
+
+def get_tools():
+  tools = [
+#    do_math_operations,
+    get_weather_forecast,
+    get_current_time,
+    browse_website,
+#    plot_chart,
+    write_file,
+    read_file
+  ]
+
+  available_functions = {
+#    'do_math_operations': do_math_operations,
+    'get_weather_forecast': get_weather_forecast,
+    'get_current_time': get_current_time,
+    'browse_website': browse_website,
+#    'plot_chart': plot_chart,
+    'write_file': write_file,
+    'read_file': read_file
   }
   return tools, available_functions
