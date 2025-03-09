@@ -39,6 +39,10 @@ def get_response_from_model(client, messages, config, tools):
 
     llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream, tools=tools)
 
+    prompt_tokens = int(llm_reply.prompt_eval_count)
+    pct = prompt_tokens/int(config['num_ctx'])
+    logger.info(f"Tokens {prompt_tokens}/{config['num_ctx']} {pct}%")
+
     if show_stats:
         ai_step_stats(llm_reply)
 

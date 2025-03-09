@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 def to_bool(env):
   return os.getenv(env, 'False').lower() in ('true', '1', 't')
 
+def escape_telegram_markdown(text):
+    return text.replace("_", "\\_").replace("*", "\\*").replace("[", "\\[").replace("`", "\\`");
+
 app = FastAPI()
 # Get bot token from environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -70,16 +73,20 @@ def process_message(message: dict):
 def send_telegram_reply(chat_id: int, text: str):
     """Send message with error handling and logging"""
     try:
+        escaped_text = escape_telegram_markdown(text)
+
         response = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": text},
+            json={"chat_id": chat_id, "text": escaped_text, "parse_mode": "Markdown"},
             timeout=5
         )
+        #logger.info(response.__dict__)
         response.raise_for_status()
         logger.info(f"Message sent to {chat_id}")
 
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.error(f"Failed to send message: {e}")
+        logger.error(f"Content: {text}")
 
 @app.post("/aibot")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
