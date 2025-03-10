@@ -44,6 +44,18 @@ AI_CONFIG = {
   "max_iter": int(os.getenv("AI_MAX_TOOL_ITER"))
 }
 
+CT_CONFIG = {
+  "system_prompt": os.getenv("CT_SYS_PROMPT"),
+  "protocol": os.getenv("CT_PROTO"),
+  "hostname": os.getenv("CT_HOST"),
+  "port": os.getenv("CT_PORT"),
+  "model": os.getenv("CT_MODEL"),
+  "temperature": float(os.getenv("CT_TEMP")),
+  "num_ctx": int(os.getenv("CT_CTX")),
+  "stream": to_bool(os.getenv("CT_STREAM"))
+}
+
+
 def process_message(message: dict):
     """Message processing with logging"""
     logger.info("Starting message processing")
