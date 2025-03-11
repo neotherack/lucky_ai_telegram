@@ -3,7 +3,6 @@ import json
 import uuid
 import logging
 import requests
-import matplotlib.pyplot as plt
 from typing import List, Optional, Union
 from bs4 import BeautifulSoup
 
@@ -43,139 +42,17 @@ def list_local_dir(directory) -> str:
     """
     return str(os.listdir())
 
-def plot_chart(x_data: Union[List[float], List[List[float]]],
-               y_data: Union[List[float], List[List[float]]],
-               chart_type: str = 'line',
-               title: str = 'Chart',
-               x_label: str = 'X Axis',
-               y_label: str = 'Y Axis',
-               color: Union[str, List[str]] = 'blue',
-               filename: str = 'plot.png') -> str:
-    """
-    Generates and saves various types of charts using Matplotlib. 
-    Supports one single line if you set x_data or y_data as a List[Float]
-    Supports multiple lines if you set x_data or y_data as List[List[Float]]
-    The plot is saved to a file and returns the filename.
-
-    Args:
-        x_data (Union[List[float], List[List[float]]]): X-axis data. If a single list is provided,
-            it is used for all lines. If a list of lists, each sublist is X-data for a corresponding line.
-        y_data (Union[List[float], List[List[float]]]): Y-axis data. Each sublist represents a line's Y-data.
-            If a single list, it is treated as a single line.
-        chart_type (str): Type of chart (line/bar/scatter). Default: line
-        title (str): Chart title. Default: 'Chart'
-        x_label (str): X-axis label. Default: 'X Axis'
-        y_label (str): Y-axis label. Default: 'Y Axis'
-        color (Union[str, List[str]]): Color for each line. Default: blue
-        filename (str): Output filename. Default: plot.png
-
-    Returns:
-        str: Path to the generated chart image file
-
-    Example:
-        plot_chart([1,2,3], [[4,5,6], [7,8,9]], 'line', 'Sales', 'Months', 'Revenue', ['red', 'blue'], 'plot.png')
-    """
-    # Process y_data into a list of lists
-    if not y_data:
-        raise ValueError("y_data must not be empty")
-    if not isinstance(y_data[0], (list, tuple)):
-        y_data = [y_data]
-
-    num_lines = len(y_data)
-
-    # Process x_data into a list of lists
-    if not x_data:
-        raise ValueError("x_data must not be empty")
-    if isinstance(x_data[0], (list, tuple)):
-        if len(x_data) != num_lines:
-            raise ValueError("x_data must have the same number of lines as y_data when provided as a list of lists")
-        x_data_list = x_data
-    else:
-        x_data_list = [x_data] * num_lines
-
-    # Check lengths of each x and y line
-    for i, (x_line, y_line) in enumerate(zip(x_data_list, y_data)):
-        if len(x_line) != len(y_line):
-            raise ValueError(f"Line {i}: x_data and y_data lengths must match. Found {len(x_line)} vs {len(y_line)}")
-
-    # Process color into a list
-    if isinstance(color, list):
-        if len(color) != num_lines:
-            raise ValueError("Number of colors must match the number of lines")
-        colors = color
-    else:
-        colors = [color] * num_lines
-
-    plt.figure()
-
-    chart_type = chart_type.lower()
-    for x_line, y_line, c in zip(x_data_list, y_data, colors):
-        if chart_type == 'line':
-            plt.plot(x_line, y_line, color=c)
-        elif chart_type == 'bar':
-            plt.bar(x_line, y_line, color=c)
-        elif chart_type == 'scatter':
-            plt.scatter(x_line, y_line, color=c)
-        else:
-            plt.close()
-            raise ValueError(f"Unsupported chart type: {chart_type}. Use line/bar/scatter")
-
-    plt.title(title)
-    #plt.xlabel(x_label)
-    plt.xlabel(x_label, rotation='vertical')
-    plt.ylabel(y_label)
-    plt.grid(True)
-
-    ## EN PRUEBAS!!!
-    #plt.set_xlabel(plt.get_xlabel())
-
-    plt.savefig(filename)
-    plt.close()
-
-    return f"Chart saved as {filename}"
-
-def do_math_operations(a:int, op:str, b:int)->str:
-    """
-    Do basic math operations
-
-    Args:
-    a(integer): The first operand
-    op(string): The operation to perform, one of '+' (sum, addition), '-' (minus, difference), '*' (times,multiplication), '/' (division)
-    b(integer): The second operand
-
-    Returns:
-      str: the result of the math operation requested
-
-    Example:
-        do_math("3", "*", "2") -> 6
-        do_math("10", "-", "7") -> 3
-    """
-    res = "NaN"
-    if op == "+":
-        res = str(int(a) + int(b))
-    elif op == "-":
-        res = str(int(a) - int(b))
-    elif op == "*":
-        res = str(int(a) * int(b))
-    elif op == "/":
-        if int(b) != 0:
-            res = str(int(a) / int(b))
-    return res
-
 def browse_website(url: str, mode: str)->str:
     """
     This function allows to get any webpage on the internet at any time, to function will trigger an HTTP GET to the URL in the paramter.
-    "html" is computationally expensive and slow, only for website debugging.
     "human" mode will get the text of the website in markdown format
     "links" mode is the best approach to explore a website first
     For exploration or browsing purporses use a multi-step strategy use first the "links" method call and then call again several times using "human" mode.
     If you need to search for something you can start here 'https://es.wikipedia.org/w/index.php?search=<search_term>' (<search_term> is your place holder)
-    Do not request the same website more than one time per iteration, it makes no sense.
 
     Args:
       url(string): The URL get data from, any valid URL will work.
       mode(string): Valid modes: "html", "markdown", "links".
-        - "html" to just get full HTML site, only for debug HTML code analysis
         - "human" which will get only the text parts in markdown (MD) format
         - "links" which will return all links within the website, this method is suitable while exploring websites
 
@@ -245,25 +122,6 @@ def get_current_time() -> str:
   return str(datetime.now())
 
 
-def get_tools():
-  tools = [
-    do_math_operations,
-    get_weather_forecast,
-    get_current_time,
-    browse_website,
-    plot_chart
-  ]
-
-  available_functions = {
-    'do_math_operations': do_math_operations,
-    'get_weather_forecast': get_weather_forecast,
-    'get_current_time': get_current_time,
-    'browse_website': browse_website,
-    'plot_chart': plot_chart,
-  }
-  return tools, available_functions
-
-
 def write_file(filename, text):
     """Creates or overwrites a file in the disk server, you can save any file.
     Consider adding the proper extension to the file.
@@ -308,25 +166,21 @@ def read_file(filename):
         return f"Error, cannot read from {filename}"
 
 
-
-
 def get_tools():
   tools = [
-#    do_math_operations,
+    list_local_dir,
     get_weather_forecast,
     get_current_time,
     browse_website,
-#    plot_chart,
     write_file,
     read_file
   ]
 
   available_functions = {
-#    'do_math_operations': do_math_operations,
+    'list_local_dir': list_local_dir,
     'get_weather_forecast': get_weather_forecast,
     'get_current_time': get_current_time,
     'browse_website': browse_website,
-#    'plot_chart': plot_chart,
     'write_file': write_file,
     'read_file': read_file
   }

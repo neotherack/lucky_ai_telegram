@@ -2,12 +2,13 @@ import json
 import logging
 from dotenv import load_dotenv
 from ollama import Client
+import os
 from os.path import abspath
 
 # Configure basic logging
 logging.basicConfig(
     format='%(levelname)s: %(name)s %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
 
@@ -58,19 +59,8 @@ def load_context(key):
     logger.error(f"Cannot load chat history for {key}!\n{str(e)}")
     return None
 
-def compress_context(messages, init_msg):
+def compress_context(messages, init_msg, config):
     load_dotenv()
-    config = {
-      "system_prompt": os.getenv("CT_SYS_PROMPT"),
-      "protocol": os.getenv("CT_PROTO"),
-      "hostname": os.getenv("CT_HOST"),
-      "port": os.getenv("CT_PORT"),
-      "model": os.getenv("CT_MODEL"),
-      "temperature": float(os.getenv("CT_TEMP")),
-      "num_ctx": int(os.getenv("CT_CTX")),
-      "stream": to_bool(os.getenv("CT_STREAM")),
-      "show_stats": to_bool(os.getenv("CT_STATS")),
-    }
 
     proto = config["protocol"]
     host = config["hostname"]
@@ -80,9 +70,13 @@ def compress_context(messages, init_msg):
     client = Client(host=f"{proto}://{host}:{port}")
     options = {'temperature': config["temperature"], 'num_ctx': config["num_ctx"]}
 
+    logger.debug(f"{messages}")
     messages = append_context(messages, "user", content=config['system_prompt'])
+    logger.debug(f"{messages}")
     llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream)
+    logger.info(f"{llm_reply}")
 
     new_messages = init_context(init_msg)
     new_messages = append_context(new_messages, "assistant", content=llm_reply.message.content)
+    logger.info(f"Compression completed!")
     return new_messages

@@ -2,15 +2,23 @@ import uuid
 import logging
 
 from ollama import Client, ResponseError
-from .context import init_context, append_context, print_context, save_context, load_context, purge_context, compress_context
 from .tools import get_tools, toolcall_to_json
+from .context import (
+    init_context,
+    append_context,
+    print_context,
+    save_context,
+    load_context,
+    purge_context,
+    compress_context
+)
 
 nanosec_to_sec = 100000000
 
 # Configure basic logging
 logging.basicConfig(
     format='%(levelname)s: %(name)s %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
 
@@ -73,6 +81,8 @@ def run_tools(available_functions, requested_tools):
         else:
           logger.error('Function', tool_name, 'not found')
           tool_messages.append({'role': 'tool', 'content': 'tool not found!', 'name': tool_name, 'tool_call_id': tool_id})
+
+      logger.debug(f"{tool_messages}")
       return tool_messages
     else:
       logger.info(' 🙅‍♂️ NO TOOLS, text only')
@@ -84,7 +94,7 @@ def tool_list_info(tools):
     else:
       return ""
 
-def interact_with_ai(user_request, chat_id, config):
+def interact_with_ai(user_request, chat_id, config, compress_config):
     client = get_client(config)
     tool_captions = ""
 
@@ -99,17 +109,14 @@ def interact_with_ai(user_request, chat_id, config):
     tool_iter = 0
     tool_max_iter = config["max_iter"]
     tools, available_functions = get_tools()
-    #disk_tools, av_disk_funcs  = get_disk_tools()
-
-    #tools = tools +disk_tools
-    #available_functions = available_functions |av_disk_funcs
 
     while tool_iter < tool_max_iter:
       tool_iter+=1
 
       llm_response, tool_calls, context_usage = get_response_from_model(client, messages, config, tools)
       if context_usage > 75:
-        messages = compress_context(messages, config["system_prompt"])
+        logger.warning(f"Context almost full, compressing...")
+        messages = compress_context(messages, config["system_prompt"], compress_config)
 
       messages = append_context(messages, "assistant", llm_response, tool_calls)
       tool_messages = run_tools(available_functions, tool_calls)

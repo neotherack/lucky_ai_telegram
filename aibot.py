@@ -73,7 +73,7 @@ def process_message(message: dict):
             else:
                 if user_request and chat_id and chat_id in ALLOWED_CHAT_IDS:
                     logger.info(f"Message from {chat_id}: {user_request}")
-                    llm_response = interact_with_ai(user_request, chat_id, AI_CONFIG)
+                    llm_response = interact_with_ai(user_request, chat_id, AI_CONFIG, CT_CONFIG)
                     send_telegram_reply(chat_id, f"{llm_response}")
                 else:
                     logger.warning(f"Received message from {chat_id}: {text} [NOT ALLOWED USER]")
