@@ -211,7 +211,6 @@ def read_file(filename):
 
 def get_tools():
   tools = [
-    search_series_by_name,
     get_series_details,
     list_local_dir,
     get_weather_forecast,
@@ -222,7 +221,6 @@ def get_tools():
   ]
 
   available_functions = {
-    'search_series_by_name': search_series_by_name,
     'get_series_details': get_series_details,
     'list_local_dir': list_local_dir,
     'get_weather_forecast': get_weather_forecast,
