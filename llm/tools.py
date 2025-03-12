@@ -86,17 +86,22 @@ def get_series_details(series_id):
     """
     conn = connect_to_db()
     with conn.cursor() as cur:
-        query = f"SELECT id,name,genres,viewed as watched,other_names,status as downloaded,synopsis "+\
-                 "FROM anime_downloader_anime WHERE id={series_id}"
+        query = f"SELECT id,name,genres,viewed as watched,other_names,status as downloaded,synopsis,"+\
+                f"rating,to_char(next_release, 'dd/mm/yyyy') as next_release "+\
+                f"FROM anime_downloader_anime WHERE id={series_id}"
         logger.debug(query)
         cur.execute(query)
+        cols = list(cur.description)
         row = cur.fetchone()
         if not row:
             logger.error(f"Series id={series_id} not found")
             return f"Series id={series_id} not found"
         else:
             logger.info(f"Anime id={series_id} found")
-            return json.loads(json.dumps(row))
+            row_dict = {}
+            for i, col in enumerate(cols):
+              row_dict[col.name] = row[i]
+            return str(row_dict)
 
 def list_local_dir(directory) -> str:
     """
