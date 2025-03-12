@@ -114,8 +114,7 @@ def interact_with_ai(user_request, chat_id, config, compress_config):
       tool_iter+=1
 
       llm_response, tool_calls, context_usage = get_response_from_model(client, messages, config, tools)
-      if context_usage > 75:
-        logger.warning(f"Context almost full, compressing...")
+      if context_usage > 95:
         messages = compress_context(messages, config["system_prompt"], compress_config)
 
       messages = append_context(messages, "assistant", llm_response, tool_calls)

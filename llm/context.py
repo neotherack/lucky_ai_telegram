@@ -60,8 +60,8 @@ def load_context(key):
     return None
 
 def compress_context(messages, init_msg, config):
-    load_dotenv()
 
+    logger.info(f"Context compression starting...")
     proto = config["protocol"]
     host = config["hostname"]
     port = config["port"]
@@ -70,13 +70,11 @@ def compress_context(messages, init_msg, config):
     client = Client(host=f"{proto}://{host}:{port}")
     options = {'temperature': config["temperature"], 'num_ctx': config["num_ctx"]}
 
-    logger.debug(f"{messages}")
     messages = append_context(messages, "user", content=config['system_prompt'])
-    logger.debug(f"{messages}")
     llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream)
-    logger.info(f"{llm_reply}")
+    logger.debug(f"{llm_reply['message']['content']}")
 
     new_messages = init_context(init_msg)
     new_messages = append_context(new_messages, "assistant", content=llm_reply.message.content)
-    logger.info(f"Compression completed!")
+    logger.info(f"Context compression completed!")
     return new_messages

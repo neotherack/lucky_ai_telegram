@@ -1,17 +1,19 @@
 import os
 import json
 import uuid
+import psycopg2
 import logging
 import requests
 from typing import List, Optional, Union
 from bs4 import BeautifulSoup
 
+from .dbconfig import DB_CONFIG
 from dotenv import load_dotenv
 
 # Configure basic logging
 logging.basicConfig(
     format='%(levelname)s: %(name)s %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,76 @@ def toolcall_to_json(tool):
     name = tool.function.name
     args = tool.function.arguments
     return {"id":id_ , "type":"function", "function":{"name":name,"arguments":args}}
+
+def connect_to_db():
+    conn = None
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        return conn
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+def search_series_by_name(name:str):
+    """
+    It will return a series listing based on the name filter provided
+
+    Args:
+    - name (str): series name part like "naruto" "dragon" or "hanako"
+
+    Returns:
+    - str: markdown table id, name, type and status.
+           id is the series id.
+           name is the series title
+           type can be 'Anime' for japanese series, 'Donghua' for chinese series
+           status 'Yes' if it's fully downloaded, 'No' if it's not yet read
+    """
+    response = "|ID|Title|Type|Downloaded|\n|----|----|----|\n"
+    conn = connect_to_db()
+    with conn.cursor() as cur:
+        query = f"SELECT id, name, type, status FROM anime_downloader_anime WHERE name ILIKE '%{name}%'"
+        logger.debug(query)
+        cur.execute(query)
+        rows = cur.fetchall()
+        for row in rows:
+            #logger.debug(row)
+            id=row[0]
+            name=row[1]
+            type="Anime" if row[2]=="JP" else "Donghua"
+            status="Yes" if row[3]=="CMP" else "No"
+            response += f"|{id}|{name}|{type}|{status}|\n"
+
+        if len(rows)==0:
+         response=f"We could not find any name like '{name}', try another name."
+
+        return response
+
+def get_series_details(series_id):
+    """
+    Retrieves details of a specific series from the database based on its ID.
+    Use 'search_series_by_name' tool first to get the ID.
+
+    Args:
+    - series_id (int): The unique identifier of the series to retrieve.
+
+    Returns:
+    - str: A string containing the details of the specified series.
+
+    If the series is not found, returns an error message indicating that the ID was not found.
+    """
+    conn = connect_to_db()
+    with conn.cursor() as cur:
+        query = f"SELECT id,name,genres,viewed as watched,other_names,status as downloaded,synopsis "+\
+                 "FROM anime_downloader_anime WHERE id={series_id}"
+        logger.debug(query)
+        cur.execute(query)
+        row = cur.fetchone()
+        if not row:
+            logger.error(f"Series id={series_id} not found")
+            return f"Series id={series_id} not found"
+        else:
+            logger.info(f"Anime id={series_id} found")
+            return json.loads(json.dumps(row))
 
 def list_local_dir(directory) -> str:
     """
@@ -168,6 +240,8 @@ def read_file(filename):
 
 def get_tools():
   tools = [
+    search_series_by_name,
+    get_series_details,
     list_local_dir,
     get_weather_forecast,
     get_current_time,
@@ -177,6 +251,8 @@ def get_tools():
   ]
 
   available_functions = {
+    'search_series_by_name': search_series_by_name,
+    'get_series_details': get_series_details,
     'list_local_dir': list_local_dir,
     'get_weather_forecast': get_weather_forecast,
     'get_current_time': get_current_time,
