@@ -37,67 +37,33 @@ def connect_to_db():
         print(f"Error: {e}")
         return None
 
-def search_series_by_name(name:str):
+def get_series_details(name:str):
     """
-    It will return a series listing based on the name filter provided
+    Retrieves details of a specific series from the database based on its name.
+    It will search on the series database which contains japanese animes and chinese donghuas.
 
     Args:
-    - name (str): series name part like "naruto" "dragon" or "hanako"
+    - name (str): Name of the series
 
     Returns:
-    - str: markdown table id, name, type and status.
-           id is the series id.
-           name is the series title
-           type can be 'Anime' for japanese series, 'Donghua' for chinese series
-           status 'Yes' if it's fully downloaded, 'No' if it's not yet read
-    """
-    response = "|ID|Title|Type|Downloaded|\n|----|----|----|\n"
-    conn = connect_to_db()
-    with conn.cursor() as cur:
-        query = f"SELECT id, name, type, pub_status as airing FROM anime_downloader_anime WHERE name ILIKE '%{name}%'"
-        logger.debug(query)
-        cur.execute(query)
-        rows = cur.fetchall()
-        for row in rows:
-            #logger.debug(row)
-            id=row[0]
-            name=row[1]
-            type="Anime" if row[2]=="JP" else "Donghua"
-            status=row[3]
-            response += f"|{id}|{name}|{type}|{status}|\n"
-
-        if len(rows)==0:
-         response=f"We could not find any name like '{name}', try another name."
-
-        return response
-
-def get_series_details(series_id):
-    """
-    Retrieves details of a specific series from the database based on its ID.
-    Use 'search_series_by_name' tool first to get the ID.
-
-    Args:
-    - series_id (int): The unique identifier of the series to retrieve.
-
-    Returns:
-    - str: A string containing the details of the specified series.
+    - str: series data from query on the database
 
     If the series is not found, returns an error message indicating that the ID was not found.
     """
     conn = connect_to_db()
     with conn.cursor() as cur:
-        query = f"SELECT id,name,genres,viewed as watched,other_names,pub_status as airing,synopsis,"+\
-                f"rating,to_char(next_release, 'dd/mm/yyyy') as next_release "+\
-                f"FROM anime_downloader_anime WHERE id={series_id}"
+        query = f"SELECT id,name,genres,type, viewed as watched,other_names,pub_status as airing,"+\
+                f"rating,to_char(next_release, 'dd/mm/yyyy') as next_release, synopsis "+\
+                f"FROM anime_downloader_anime WHERE name ILIKE '%{name}%'"
         logger.debug(query)
         cur.execute(query)
         cols = list(cur.description)
         row = cur.fetchone()
         if not row:
-            logger.error(f"Series id={series_id} not found")
-            return f"Series id={series_id} not found"
+            logger.error(f"Series id={name} not found")
+            return f"Series id={name} not found"
         else:
-            logger.info(f"Anime id={series_id} found")
+            logger.info(f"Anime id={name} found")
             row_dict = {}
             for i, col in enumerate(cols):
               row_dict[col.name] = row[i]
