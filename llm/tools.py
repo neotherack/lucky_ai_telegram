@@ -54,7 +54,7 @@ def search_series_by_name(name:str):
     response = "|ID|Title|Type|Downloaded|\n|----|----|----|\n"
     conn = connect_to_db()
     with conn.cursor() as cur:
-        query = f"SELECT id, name, type, status FROM anime_downloader_anime WHERE name ILIKE '%{name}%'"
+        query = f"SELECT id, name, type, pub_status as airing FROM anime_downloader_anime WHERE name ILIKE '%{name}%'"
         logger.debug(query)
         cur.execute(query)
         rows = cur.fetchall()
@@ -63,7 +63,7 @@ def search_series_by_name(name:str):
             id=row[0]
             name=row[1]
             type="Anime" if row[2]=="JP" else "Donghua"
-            status="Yes" if row[3]=="CMP" else "No"
+            status=row[3]
             response += f"|{id}|{name}|{type}|{status}|\n"
 
         if len(rows)==0:
@@ -86,7 +86,7 @@ def get_series_details(series_id):
     """
     conn = connect_to_db()
     with conn.cursor() as cur:
-        query = f"SELECT id,name,genres,viewed as watched,other_names,status as downloaded,synopsis,"+\
+        query = f"SELECT id,name,genres,viewed as watched,other_names,pub_status as airing,synopsis,"+\
                 f"rating,to_char(next_release, 'dd/mm/yyyy') as next_release "+\
                 f"FROM anime_downloader_anime WHERE id={series_id}"
         logger.debug(query)

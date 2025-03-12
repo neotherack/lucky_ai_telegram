@@ -90,7 +90,7 @@ def run_tools(available_functions, requested_tools):
 
 def tool_list_info(tools):
     if tools and tools!=[]:
-      return "\n".join([f'🛠️ {tool["function"]["name"]}' for tool in tools])
+      return "\n".join([f'🛠️ {tool["function"]["name"]} ({tool["function"]["arguments"]})' for tool in tools])
     else:
       return ""
 
