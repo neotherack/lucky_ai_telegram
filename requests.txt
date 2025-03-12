@@ -1,0 +1,7 @@
+ollama
+psycopg2-binary
+bs4
+dotenv
+fastapi
+requests
+uvicorn

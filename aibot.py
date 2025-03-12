@@ -76,7 +76,7 @@ def process_message(message: dict):
                     llm_response = interact_with_ai(user_request, chat_id, AI_CONFIG, CT_CONFIG)
                     send_telegram_reply(chat_id, f"{llm_response}")
                 else:
-                    logger.warning(f"Received message from {chat_id}: {text} [NOT ALLOWED USER]")
+                    logger.warning(f"Received message from {chat_id}: {message} [NOT ALLOWED USER]")
                     send_telegram_reply(chat_id, f"You're NOT allowed to use this bot")
 
     except Exception as e:
