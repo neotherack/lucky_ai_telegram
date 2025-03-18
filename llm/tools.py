@@ -87,7 +87,7 @@ def list_local_dir(directory) -> str:
 
 def browse_website(url: str, mode: str)->str:
     """
-    This function allows to get any webpage on the internet at any time, to function will trigger an HTTP GET to the URL in the paramter.
+    This function allows to get any webpage on the internet at any time, to function will trigger an HTTP GET to the URL in the parameter.
     "human" mode will get the text of the website in markdown format
     "links" mode is the best approach to explore a website first
     For exploration or browsing purporses use a multi-step strategy use first the "links" method call and then call again several times using "human" mode.
