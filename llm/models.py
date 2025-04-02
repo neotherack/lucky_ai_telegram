@@ -23,10 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def get_client(config):
-  proto = config["protocol"]
-  host = config["hostname"]
-  port = config["port"]
-  return Client(host=f"{proto}://{host}:{port}")
+  return Client(host=config["endpoint"])
 
 def ai_step_stats(llm_response):
     model = llm_response.model
@@ -44,7 +41,10 @@ def get_response_from_model(client, messages, config, tools):
     show_stats = config["show_stats"]
     options = {'temperature': config["temperature"], 'num_ctx': config["num_ctx"]}
 
-    llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream, tools=tools)
+    try:
+      llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream, tools=tools)
+    except Exception as e:
+      logger.error(f"Error on model chat request!\n{e}")
 
     prompt_tokens = int(llm_reply.prompt_eval_count)
     pct = int(prompt_tokens/int(config['num_ctx'])*100)
@@ -126,6 +126,6 @@ def interact_with_ai(user_request, chat_id, config, compress_config):
         tool_captions+=tool_list_info(tool_calls)+"\n"
       else: #talk to user, loop finished!
         save_context(chat_id, messages)
-        return tool_captions+messages[-1]['content']
+        return f"🧠 Context usage {context_usage}%\n"+tool_captions+messages[-1]['content']
 
     return "Max tool iterations triggered!"

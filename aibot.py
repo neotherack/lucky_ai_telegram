@@ -31,9 +31,7 @@ ALLOWED_CHAT_IDS = [int(id) for id in os.getenv("ALLOWED_CHAT_IDS").split(",")]
 
 AI_CONFIG = {
   "system_prompt": os.getenv("AI_SYS_PROMPT"),
-  "protocol": os.getenv("AI_PROTO"),
-  "hostname": os.getenv("AI_HOST"),
-  "port": os.getenv("AI_PORT"),
+  "endpoint": os.getenv("AI_ENDPOINT"),
   "model": os.getenv("AI_MODEL"),
   "temperature": float(os.getenv("AI_TEMP")),
   "num_ctx": int(os.getenv("AI_CTX")),
@@ -46,9 +44,7 @@ AI_CONFIG = {
 
 CT_CONFIG = {
   "system_prompt": os.getenv("CT_SYS_PROMPT"),
-  "protocol": os.getenv("CT_PROTO"),
-  "hostname": os.getenv("CT_HOST"),
-  "port": os.getenv("CT_PORT"),
+  "endpoint": os.getenv("CT_ENDPOINT"),
   "model": os.getenv("CT_MODEL"),
   "temperature": float(os.getenv("CT_TEMP")),
   "num_ctx": int(os.getenv("CT_CTX")),

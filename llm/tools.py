@@ -40,7 +40,7 @@ def connect_to_db():
 def get_series_details(name:str):
     """
     Retrieves details of a specific series from the database based on its name.
-    It will search on the series database which contains japanese animes and chinese donghuas.
+    It will search in the series database which contains japanese animes and chinese donghuas.
 
     Args:
     - name (str): Name of the series

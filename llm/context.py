@@ -62,19 +62,21 @@ def load_context(key):
 def compress_context(messages, init_msg, config):
 
     logger.info(f"Context compression starting...")
-    proto = config["protocol"]
-    host = config["hostname"]
-    port = config["port"]
     model = config["model"]
     stream = config["stream"]
-    client = Client(host=f"{proto}://{host}:{port}")
+    client = Client(host=config["endpoint"])
     options = {'temperature': config["temperature"], 'num_ctx': config["num_ctx"]}
 
-    messages = append_context(messages, "user", content=config['system_prompt'])
+    oldest_messages = messages[:-2]
+    latest_messages = messages[-2:]
+
+    messages = append_context(oldest_messages, "assistant", content=config['system_prompt'])
     llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream)
     logger.debug(f"{llm_reply['message']['content']}")
 
     new_messages = init_context(init_msg)
+    new_messages+= latest_messages
     new_messages = append_context(new_messages, "assistant", content=llm_reply.message.content)
     logger.info(f"Context compression completed!")
     return new_messages
+
