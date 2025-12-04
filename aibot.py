@@ -1,6 +1,7 @@
 import logging
 import os
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
+from starlette.responses import JSONResponse
 import uvicorn
 import requests
 
@@ -13,7 +14,7 @@ load_dotenv()
 # Configure basic logging
 logging.basicConfig(
     format='%(levelname)s: %(name)s %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,15 @@ def process_message(message: dict):
                 send_telegram_reply(chat_id, f"Welcome!")
             elif user_request=="/wipe":
                 os.remove(f"data/{chat_id}.json")
+                os.remove(f"data/{chat_id}.prf")
+            elif user_request=="/chat":
+                with open(f"data/{chat_id}.json") as f:
+                  lines = f.readlines()
+                  send_telegram_reply(chat_id, "\n".join(lines))
+            elif user_request=="/profile":
+                with open(f"data/{chat_id}.prf") as f:
+                  lines = f.readlines()
+                  send_telegram_reply(chat_id, "\n".join(lines))
             else:
                 if user_request and chat_id and chat_id in ALLOWED_CHAT_IDS:
                     logger.info(f"Message from {chat_id}: {user_request}")
@@ -112,8 +122,19 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     """Webhook healthcheck with access logging"""
     client_ip = request.client.host
     logger.info(f"Incoming request from IP: {client_ip}")
+    return JSONResponse(
+              status_code=200,
+              content={"message": "server is up"}
+           )
 
-    return {"status": "ok"}
+@app.exception_handler(404)
+async def not_found_exception_handler(request: Request, exc: HTTPException):
+    client_ip = request.client.host
+    logger.error(f"Rejected request: {client_ip}, fuckoff message sent")
+    return JSONResponse(
+              status_code=200,
+              content={"message": f"FUCKOFF! rejected! your IP {client_ip} will be tracked"}
+           )
 
 if __name__ == "__main__":
     print(f"Allowed chat IDS: {ALLOWED_CHAT_IDS}")

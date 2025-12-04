@@ -1,8 +1,16 @@
 import uuid
 import logging
+import re
 
 from ollama import Client, ResponseError
 from .tools import get_tools, toolcall_to_json
+from .profile import (
+    load_profile,
+    save_profile
+)
+from .status import (
+    load_status
+)
 from .context import (
     init_context,
     append_context,
@@ -94,16 +102,34 @@ def tool_list_info(tools):
     else:
       return ""
 
+
+def build_user_status_context(profile, date_and_time):
+    data = f"""User Profile:
+    {profile}
+
+    Current date and time:
+    {date_and_time}
+    """
+
+    return data
+
+
 def interact_with_ai(user_request, chat_id, config, compress_config):
     client = get_client(config)
     tool_captions = ""
 
     history = load_context(chat_id)
+    profile = load_profile(chat_id)
+    status  = load_status()
+
+    user_status_context = build_user_status_context(profile, status)
+
     if history:
       messages=history
     else:
       messages=init_context(config["system_prompt"])
 
+    messages = append_context(messages, "assistant", user_status_context)
     messages = append_context(messages, "user", user_request)
 
     tool_iter = 0
@@ -117,7 +143,8 @@ def interact_with_ai(user_request, chat_id, config, compress_config):
       if context_usage > 95:
         messages = compress_context(messages, config["system_prompt"], compress_config)
 
-      messages = append_context(messages, "assistant", llm_response, tool_calls)
+      llm_response_clean = re.sub(r'<think>.*?</think>', '', llm_response, flags=re.DOTALL)
+      messages = append_context(messages, "assistant", llm_response_clean, tool_calls)
       tool_messages = run_tools(available_functions, tool_calls)
 
       if tool_messages!=[]: #loop, tools used
@@ -126,6 +153,7 @@ def interact_with_ai(user_request, chat_id, config, compress_config):
         tool_captions+=tool_list_info(tool_calls)+"\n"
       else: #talk to user, loop finished!
         save_context(chat_id, messages)
+        save_profile(chat_id, messages, profile)
         return f"🧠 Context usage {context_usage}%\n"+tool_captions+messages[-1]['content']
 
     return "Max tool iterations triggered!"

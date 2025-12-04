@@ -1,26 +1,23 @@
 import os
 import json
 import uuid
-import psycopg2
 import logging
 import requests
-from typing import List, Optional, Union
-from bs4 import BeautifulSoup
+from trafilatura import fetch_url, extract
+from duckduckgo_search import DDGS
 
-from .dbconfig import DB_CONFIG
-from dotenv import load_dotenv
+#from .dbconfig import DB_CONFIG
+#from dotenv import load_dotenv
+
+RESULT_LIMIT = 5
+CONTENT_LEN_CUT = 10000
 
 # Configure basic logging
 logging.basicConfig(
     format='%(levelname)s: %(name)s %(message)s',
-    level=logging.DEBUG
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-def remove_empty_lines(text):
-    lines = text.split('\n')
-    non_empty_lines = [line for line in lines if line.strip() != '']
-    return str('\n'.join(non_empty_lines))
 
 def toolcall_to_json(tool):
     id_ = str(uuid.uuid4())
@@ -28,205 +25,124 @@ def toolcall_to_json(tool):
     args = tool.function.arguments
     return {"id":id_ , "type":"function", "function":{"name":name,"arguments":args}}
 
-def connect_to_db():
-    conn = None
+def search_internet_tool(keywords: str) -> str:
+    """
+    This tool will search on the internet by using a search engine.
+    You can search for:
+    1. current date and time
+    2. weather for a given city/location
+    3. online tutorials or manuals
+    4. technical info
+    5. images and videos
+    6. any other online content...
+
+    Args:
+        keywords: search terms, it will just be sent to the search engine
+
+    Returns:
+        str: Result text processed by another LLM model based on the search terms and the 
+             info found on the internet
+    """
+
+    logger.info(f"Iniciando búsqueda para keywords: {keywords}")
+
+    # 1. Búsqueda con DuckDuckGo
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        return conn
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
+        logger.debug("Realizando búsqueda en DuckDuckGo")
+        with DDGS() as ddgs:
+            search_results = [r for r in ddgs.text(keywords, max_results=RESULT_LIMIT)]
 
-def get_series_details(name:str):
-    """
-    Retrieves details of a specific series from the database based on its name.
-    It will search in the series database which contains japanese animes and chinese donghuas.
-
-    Args:
-    - name (str): Name of the series
-
-    Returns:
-    - str: series data from query on the database
-
-    If the series is not found, returns an error message indicating that the ID was not found.
-    """
-    conn = connect_to_db()
-    with conn.cursor() as cur:
-        query = f"SELECT id,name,genres,type, viewed as watched,other_names,pub_status as airing,"+\
-                f"rating,to_char(next_release, 'dd/mm/yyyy') as next_release, synopsis "+\
-                f"FROM anime_downloader_anime WHERE name ILIKE '%{name}%'"
-        logger.debug(query)
-        cur.execute(query)
-        cols = list(cur.description)
-        row = cur.fetchone()
-        if not row:
-            logger.error(f"Series id={name} not found")
-            return f"Series id={name} not found"
-        else:
-            logger.info(f"Anime id={name} found")
-            row_dict = {}
-            for i, col in enumerate(cols):
-              row_dict[col.name] = row[i]
-            return str(row_dict)
-
-def list_local_dir(directory) -> str:
-    """
-    This tool will return a local disk directory listing, it's useful to check existing files in local disk.
-    You have to pick one of the allowed folders: drafts, plots or data.
-
-    Args:
-        directory (str): pick of these "drafts","plots","data".
-
-    Returns:
-        str: a text string containing all file names
-
-    Example:
-        list_local_dir("drafts") -> file listing in string format from the drafts dir
-    """
-    return str(os.listdir())
-
-def browse_website(url: str, mode: str)->str:
-    """
-    This function allows to get any webpage on the internet at any time, to function will trigger an HTTP GET to the URL in the parameter.
-    "human" mode will get the text of the website in markdown format
-    "links" mode is the best approach to explore a website first
-    For exploration or browsing purporses use a multi-step strategy use first the "links" method call and then call again several times using "human" mode.
-    If you need to search for something you can start here 'https://es.wikipedia.org/w/index.php?search=<search_term>' (<search_term> is your place holder)
-
-    Args:
-      url(string): The URL get data from, any valid URL will work.
-      mode(string): Valid modes: "html", "markdown", "links".
-        - "human" which will get only the text parts in markdown (MD) format
-        - "links" which will return all links within the website, this method is suitable while exploring websites
-
-    Returns:
-      str: [http status code] the http body if the web site requested, html if "html" mode is selected or markdown if "markdown" mode.
-
-    Example:
-       browse_website("https://www.opentext.com/contact/", "human") -> [404] failed attempt to extract text from website
-    """
-    response = requests.get(url)
-    status = response.status_code
-
-    if mode=="html":
-        ret_data = f"[{status}] {str(response.__dict__)}"
-    if mode=="human":
-        soup = BeautifulSoup(response.text, 'html.parser')
-        #markdown_converter = mistune.Markdown()
-        #return f"[{status}] {markdown_converter(soup.get_text())}"
-        ret_data = f"[{status}] {soup.get_text()}"
-    if mode=="links":
-        soup = BeautifulSoup(response.text, 'html.parser')
-        links = [a.get('href') for a in soup.find_all('a', href=True)]
-        links = sorted(list(set(links)))
-        ret_data = f"[{status}] {', '.join(links)}"
-
-    return remove_empty_lines(ret_data)
-
-def get_weather_forecast(city_name: str, mode: str) -> str:
-  """
-  Get weather forecast for a given city or location, all data comes from api.openweathermap.org API public endpoints.
-  "simple" report will include just basic forecast information.
-  "detailed" extensive forecast details, use "dt" for plotting charts but you have to convert it from unix time to human readable.
-
-  Args:
-  city_name (string): the name of the city or location to get weather forecast from
-  mode (string): it can be "simple" to get highs and lows basic info, or "detailed" to get a full hourly json dump.
-
-  Returns:
-    str: the weather forecast for the location in JSON format, you should translate to a very detailed human readable text. All units will be in international system
-  """
-  load_dotenv()
-  WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
-
-  geo_url=f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=1&appid={WEATHER_API_KEY}"
-  response_geo = requests.get(geo_url)
-
-  lon = response_geo.json()[0]["lon"]
-  lat = response_geo.json()[0]["lat"]
-  query = f"lon={lon}&lat={lat}&appid={WEATHER_API_KEY}&units=metric&cnt=8"
-
-  if mode=="simple":
-     weather_url=f"https://api.openweathermap.org/data/2.5/weather?{query}"
-  else:
-     weather_url=f"https://api.openweathermap.org/data/2.5/forecast?{query}"
-
-  response_weather = requests.get(weather_url)
-  return str(response_weather.json())
-
-def get_current_time() -> str:
-  """
-  Returns today's date and time for Madrid (Spain) timezone
-
-  Returns:
-    str: current date and time, translate to a human friendly format
-  """
-  from datetime import datetime
-  return str(datetime.now())
-
-
-def write_file(filename, text):
-    """Creates or overwrites a file in the disk server, you can save any file.
-    Consider adding the proper extension to the file.
-    Do not set any path, just filename.
-
-    Args:
-        filename (str): Name of file to create/overwrite. Include extension.
-        text (str): Content to write to the file. UTF-8 encoded.
-
-    Returns:
-        str: Success or error message
-    """
-    logger.info(f"Written to {filename}")
-    try:
-        with open(f"drafts/{filename}", "w") as f:
-            f.write(text)
-
-        return "Success, data written to {filename}"
+        logger.info(f"Encontrados {len(search_results)} resultados de búsqueda")
 
     except Exception as e:
-        logger.error(f"Cannot write to {filename}!\n{str(e)}")
-        return "Error, cannot write to {filename}"
+        logger.error(f"Error en búsqueda DDG: {str(e)}", exc_info=True)
+        return f"Error en la búsqueda: {str(e)}"
 
+    if not search_results:
+        logger.warning("No se encontraron resultados de búsqueda")
+        return "No se encontraron resultados de búsqueda"
 
-def read_file(filename):
-    """Retrieves file contents from disk server, useful to retrieve any previously saved file.
-    Do not set any path, just the filename.
+    # 2. Extracción de contenido de los enlaces
+    processed_results = []
+    logger.debug("Iniciando extracción de contenido")
 
-    Args:
-        filename (str): Name of file to read from drafts folder. Include extension.
+    for i, result in enumerate(search_results):
+        try:
+            url = result.get('href', '')
+            if not url:
+                logger.debug(f"Resultado {i} sin URL válida")
+                continue
 
-    Returns:
-        str: File contents as string if successful, error message if file doesn't
-        exist or can't be read.
+            logger.info(f"Procesando URL {i}: {url}")
+
+            downloaded = fetch_url(url)
+            content = extract(downloaded, include_links=False, include_tables=False)
+
+            if content:
+                logger.debug(f"Contenido extraído ({len(content)} caracteres)")
+                processed_results.append({
+                    'num': i,
+                    'url': url,
+                    'content': content[:CONTENT_LEN_CUT]
+                })
+            else:
+                logger.warning(f"No se pudo extraer contenido de {url}")
+
+        except Exception as e:
+            logger.error(f"Error procesando {url}: {str(e)}", exc_info=True)
+            continue
+
+    # 3. Construcción del prompt para Ollama
+    logger.debug("Construyendo prompt para Ollama")
+    search_context = "\n\n".join(
+        [f"Búsqueda {res['num']} ({res['url']}):\n{res['content']}"
+         for res in processed_results]
+    )
+
+    system_prompt = f"""Eres un asistente de búsqueda experto. El usuario preguntó: '{keywords}'.
+
+    Los resultados de búsqueda son:
+    {search_context if search_context else 'No se encontró contenido relevante en los resultados'}
+
+    Responde de forma concisa y útil:
+    1. Si la información es relevante y suficiente: Da una respuesta estructurada citando las fuentes o URLs.
+    2. Si la información es insuficiente o no relevante: Indícalo claramente y sugiere parámetros de búsqueda más específicos.
+    3. Ten en cuenta el orden de los resultados, el primer resultado es el que el motor de búsqueda consideró más relevante.
     """
-    logger.info(f"Read from {filename}")
-    try:
-        f = open(f"drafts/{filename}","r")
-        return f.read()
-    except Exception as e:
-        logger.error(f"Cannot read from {filename}!\n{str(e)}")
-        return f"Error, cannot read from {filename}"
 
+    logger.debug(f"Longitud del prompt: {len(system_prompt)} caracteres")
+
+    # 4. Llamada a la API de Ollama
+    try:
+        logger.info("Enviando solicitud a Ollama API")
+        response = requests.post(
+            'http://antares:11434/api/generate',
+            json={
+                'model': 'qwen2.5:7b-instruct-q4_0',
+                'prompt': f"Términos de la búsqueda: {keywords}",
+                'system': system_prompt,
+                'stream': False,
+                'options': {
+                    'temperature': 0.1,
+                    'num_ctx': 7500
+                }
+            }
+        )
+        response.raise_for_status()
+
+        logger.debug("Respuesta recibida de Ollama")
+        return json.loads(response.text)['response']
+
+    except Exception as e:
+        logger.error(f"Error en generación: {str(e)}", exc_info=True)
+        return f"Error en la generación de respuesta: {str(e)}"
 
 def get_tools():
   tools = [
-    get_series_details,
-    list_local_dir,
-    get_weather_forecast,
-    get_current_time,
-    browse_website,
-    write_file,
-    read_file
+    search_internet_tool
   ]
 
   available_functions = {
-    'get_series_details': get_series_details,
-    'list_local_dir': list_local_dir,
-    'get_weather_forecast': get_weather_forecast,
-    'get_current_time': get_current_time,
-    'browse_website': browse_website,
-    'write_file': write_file,
-    'read_file': read_file
+    'search_internet_tool': search_internet_tool
   }
   return tools, available_functions

@@ -70,9 +70,9 @@ def compress_context(messages, init_msg, config):
     oldest_messages = messages[:-2]
     latest_messages = messages[-2:]
 
-    messages = append_context(oldest_messages, "assistant", content=config['system_prompt'])
-    llm_reply = client.chat(model=model, options=options, messages=messages, stream=stream)
-    logger.debug(f"{llm_reply['message']['content']}")
+    conversation = append_context(oldest_messages, "assistant", content=config['system_prompt'])
+    llm_reply = client.chat(model=model, options=options, messages=conversation, stream=stream)
+    logger.debug(f"Compression result: {llm_reply['message']['content']}")
 
     new_messages = init_context(init_msg)
     new_messages+= latest_messages
